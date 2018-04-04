@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Monitor Nearline endpoint 
-
+Monitor Nearline endpoint
 
 Based on tutorial and documentation at:
    http://globus.github.io/globus-sdk-python/index.html
@@ -26,9 +25,9 @@ GLOBUS_CONSOLE = "https://www.globus.org/app/console/tasks/"
 DISPLAY_ONLY_SIZE = NOTIFY_SIZE
 PAUSE_SIZE = NOTIFY_SIZE
 SRCDEST_FILES = 500
-SLEEP_DELAY = 300
-# dictionary for testing to maintain state of tasks that would have been paused
-mytaskpaused = {}
+SLEEP_DELAY = 30
+# dictionary for testing to maintain state of tasks notified
+mytask_noted = {}
 TOKEN_FILE = 'refresh-tokens.json'
 REDIRECT_URI = 'https://auth.globus.org/v2/web/auth-code'
 SCOPES = ('openid email profile '
@@ -40,6 +39,7 @@ EP_JYC = "d0ccdc02-6d04-11e5-ba46-22000b92c6ec"
 EP_NEARLINE = "d599008e-6d04-11e5-ba46-22000b92c6ec"
 
 GET_INPUT = getattr(__builtins__, 'raw_input', input)
+
 
 def is_remote_session():
     """ Test if this is a remote ssh session """
@@ -95,32 +95,27 @@ def do_native_app_authentication(client_id, redirect_uri,
     return token_response.by_resource_server
 
 
-def add_notification_line(task,endpoint_is):
-    mail_file = open('large_xfer.txt', 'a')
-    mail_file.write("{1:5s} {2:36s} {3:10d} {0}\n".format(
-         task["owner_string"], endpoint_is,
-         task["task_id"], 
-         task["files"])
-         )
-    mail_file.close()    
-
-def my_endpoint_manager_task_list(tclient,ep):
+def my_endpoint_manager_task_list(tclient, ep):
+    """
+    Get tasks from an endpoint, then look through them for error events.
+    Also mark as SRC, DEST, or SRC_DEST as the case may be.
+    """
     source_total_files = 0
     dest_total_files = 0
     source_total_bps = 0
     dest_total_bps = 0
     source_total_tasks = 0
     dest_total_tasks = 0
-    
-    for task in tclient.endpoint_manager_task_list(filter_endpoint=ep,num_results=None):
-        if (task["status"] == "ACTIVE"):
-            if (task["destination_endpoint_id"] == ep):
+
+    for task in tclient.endpoint_manager_task_list(filter_endpoint=ep, num_results=None):
+        if task["status"] == "ACTIVE":
+            if task["destination_endpoint_id"] == ep:
                 endpoint_is = "DEST"
                 dest_total_files += task["files"]
                 dest_total_bps += task["effective_bytes_per_second"]
                 dest_total_tasks += 1
             else:
-                endpoint_is = "SRC" 
+                endpoint_is = "SRC"
                 source_total_files += task["files"]
                 source_total_bps += task["effective_bytes_per_second"]
                 source_total_tasks += 1
@@ -131,28 +126,49 @@ def my_endpoint_manager_task_list(tclient,ep):
                 source_total_files += task["files"]
                 source_total_bps += task["effective_bytes_per_second"]
                 source_total_tasks += 1
-            if (task["files"] > DISPLAY_ONLY_SIZE) or (endpoint_is == "DEST_SRC"):
-                print("{1:10s} {2:36s} {3:10d} {0}".format(
-                    task["owner_string"], endpoint_is,
-                    task["task_id"], 
-                    task["files"])
-                )
-                #detail_file = open('task_detail.txt','a')
-                #pprint.pprint(str(task), stream=detail_file, depth=1, width=50)
-                #detail_file.close()
-                for event in tclient.endpoint_manager_task_event_list(task["task_id"]):
-                    if event["is_error"]:
+            print("{1:10s} {2:36s} {3:10d} {0}".format(
+                task["owner_string"], endpoint_is,
+                task["task_id"],
+                task["files"])
+                 )
+            # this logic will alert on the most recent error event for a task, only once
+            for event in tclient.endpoint_manager_task_event_list(task["task_id"]):
+                if event["is_error"]:
+                    # for events that are transient, self-correct, or beyond user control,
+                    # skip over with continue
+                    if (event["code"] == "ENDPOINT_TOO_BUSY") or (event["code"] ==
+                                                                  "ENDPOINT_ERROR"):
+                        continue
+                    if (event["code"] == "NO_APPEND_FILESYSTEM") or (event["code"] == "UNKNOWN"):
+                        continue
+                    if (event["code"] == "TIMEOUT") or (event["code"] == "AUTH"):
+                        continue
+                    if mytask_noted.get(str(task["task_id"])) is None:
                         print("  {} {} {}".format(event["time"], event["code"],
-                            event["description"])
-                        )
+                                                  event["description"]))
+                        globus_url = GLOBUS_CONSOLE + str(task["task_id"])
+                        detail_file = open('task_detail.txt', 'w')
+                        detail_file.write("Click link to view in the GO console: {}\n".
+                                          format(globus_url))
+                        detail_file.write("{} {} {}\n{}".format(event["time"],
+                                                                event["code"], event["description"],
+                                                                event["details"]))
+                        pprint.pprint(str(task), stream=detail_file, depth=1, width=50)
+                        detail_file.close()
+                        os.system("mail -s " + "ERROR:" + task["owner_string"] + " " + RECIPIENTS
+                                  + " < task_detail.txt")
+                    else:
+                        print("  old_or_handled: {} {} {}".format(event["time"], event["code"],
+                                                                  event["description"]))
+                    mytask_noted[str(task["task_id"])] = 1
     # end for
     print("...TOTAL.files..tasks..MBps...")
     print("SRC  {:9d}  {:4d}  {:6.1f}".format(
         source_total_files, source_total_tasks, source_total_bps/MB)
-        )
+         )
     print("DEST {:9d}  {:4d}  {:6.1f}".format(
         dest_total_files, dest_total_tasks, dest_total_bps/MB)
-        )
+         )
 
 
 def main():
@@ -190,12 +206,7 @@ def main():
 
     while True:
         print("...Nearline..........task.[ACTIVE]............Nfiles.....owner...")
-        my_endpoint_manager_task_list(tclient,EP_NEARLINE)
-        if os.path.isfile("./large_xfer.txt"):
-            print("found large_xfer.txt, handling...")
-            os.system("cat -n large_xfer.txt");
-#           os.system("mail -s ncsa#Nearline_many_file_xfers " + RECIPIENTS + " < ./large_xfer.txt") 
-            os.system("rm large_xfer.txt");
+        my_endpoint_manager_task_list(tclient, EP_NEARLINE)
         print("...sleeping {}s...\n".format(SLEEP_DELAY))
         time.sleep(SLEEP_DELAY)
         # end while
