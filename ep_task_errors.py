@@ -20,12 +20,12 @@ TIMEOUT = 60
 MB = 1048576
 NOTIFY_SIZE = 100
 RECIPIENTS = "gwarnold@illinois.edu,gbauer@illinois.edu"
-RECIPIENTS = "gwarnold@illinois.edu"
+RECIPIENTS = "gwarnold@illinois.edu,help+bwstorage@ncsa.illinois.edu"
 GLOBUS_CONSOLE = "https://www.globus.org/app/console/tasks/"
 DISPLAY_ONLY_SIZE = NOTIFY_SIZE
 PAUSE_SIZE = NOTIFY_SIZE
 SRCDEST_FILES = 500
-SLEEP_DELAY = 30
+SLEEP_DELAY = 300
 # dictionary for testing to maintain state of tasks notified
 mytask_noted = {}
 TOKEN_FILE = 'refresh-tokens.json'
