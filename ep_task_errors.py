@@ -27,7 +27,7 @@ PAUSE_SIZE = NOTIFY_SIZE
 SRCDEST_FILES = 500
 SLEEP_DELAY = 300
 # dictionary for testing to maintain state of tasks notified
-mytask_noted = {}
+MYTASK_NOTED = {}
 TOKEN_FILE = 'refresh-tokens.json'
 REDIRECT_URI = 'https://auth.globus.org/v2/web/auth-code'
 SCOPES = ('openid email profile '
@@ -95,7 +95,7 @@ def do_native_app_authentication(client_id, redirect_uri,
     return token_response.by_resource_server
 
 
-def my_endpoint_manager_task_list(tclient, ep):
+def my_endpoint_manager_task_list(tclient, endpoint):
     """
     Get tasks from an endpoint, then look through them for error events.
     Also mark as SRC, DEST, or SRC_DEST as the case may be.
@@ -107,9 +107,9 @@ def my_endpoint_manager_task_list(tclient, ep):
     source_total_tasks = 0
     dest_total_tasks = 0
 
-    for task in tclient.endpoint_manager_task_list(filter_endpoint=ep, num_results=None):
+    for task in tclient.endpoint_manager_task_list(filter_endpoint=endpoint, num_results=None):
         if task["status"] == "ACTIVE":
-            if task["destination_endpoint_id"] == ep:
+            if task["destination_endpoint_id"] == endpoint:
                 endpoint_is = "DEST"
                 dest_total_files += task["files"]
                 dest_total_bps += task["effective_bytes_per_second"]
@@ -136,14 +136,16 @@ def my_endpoint_manager_task_list(tclient, ep):
                 if event["is_error"]:
                     # for events that are transient, self-correct, or beyond user control,
                     # skip over with continue
-                    if (event["code"] == "ENDPOINT_TOO_BUSY") or (event["code"] ==
-                                                                  "ENDPOINT_ERROR"):
+                    if (event["code"] == "AUTH" or
+                            event["code"] == "CANCELED" or
+                            event["code"] == "CONNECTION_RESET" or
+                            event["code"] == "ENDPOINT_TOO_BUSY" or
+                            event["code"] == "ENDPOINT_ERROR" or
+                            event["code"] == "NO_APPEND_FILESYSTEM" or
+                            event["code"] == "TIMEOUT" or
+                            event["code"] == "UNKNOWN"):
                         continue
-                    if (event["code"] == "NO_APPEND_FILESYSTEM") or (event["code"] == "UNKNOWN"):
-                        continue
-                    if (event["code"] == "TIMEOUT") or (event["code"] == "AUTH"):
-                        continue
-                    if mytask_noted.get(str(task["task_id"])) is None:
+                    if MYTASK_NOTED.get(str(task["task_id"])) is None:
                         print("  {} {} {}".format(event["time"], event["code"],
                                                   event["description"]))
                         globus_url = GLOBUS_CONSOLE + str(task["task_id"])
@@ -160,7 +162,7 @@ def my_endpoint_manager_task_list(tclient, ep):
                     else:
                         print("  old_or_handled: {} {} {}".format(event["time"], event["code"],
                                                                   event["description"]))
-                    mytask_noted[str(task["task_id"])] = 1
+                    MYTASK_NOTED[str(task["task_id"])] = 1
     # end for
     print("...TOTAL.files..tasks..MBps...")
     print("SRC  {:9d}  {:4d}  {:6.1f}".format(
@@ -179,8 +181,8 @@ def main():
     try:
         # if we already have tokens, load and use them
         tokens = load_tokens_from_file(TOKEN_FILE)
-    except:
-        pass
+    except IOError:
+        print("{} did not contain tokens [IOError].".format(TOKEN_FILE))
 
     if not tokens:
         # if we need to get tokens, start the Native App authentication process
@@ -188,8 +190,8 @@ def main():
 
         try:
             save_tokens_to_file(TOKEN_FILE, tokens)
-        except:
-            pass
+        except IOError:
+            print("[IOError] unable to save tokens to {}".format(TOKEN_FILE))
 
     transfer_tokens = tokens['transfer.api.globus.org']
 
