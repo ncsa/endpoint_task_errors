@@ -108,69 +108,70 @@ def my_endpoint_manager_task_list(tclient, endpoint):
     source_total_tasks = 0
     dest_total_tasks = 0
 
-    for task in tclient.endpoint_manager_task_list(filter_endpoint=endpoint, num_results=None):
-        if task["status"] == "ACTIVE":
-            if task["destination_endpoint_id"] == endpoint:
-                endpoint_is = "DEST"
-                dest_total_files += task["files"]
-                dest_total_bps += task["effective_bytes_per_second"]
-                dest_total_tasks += 1
-            else:
-                endpoint_is = "SRC"
-                source_total_files += task["files"]
-                source_total_bps += task["effective_bytes_per_second"]
-                source_total_tasks += 1
-                endpoint_is = "DEST_SRC"
-                dest_total_files += task["files"]
-                dest_total_bps += task["effective_bytes_per_second"]
-                dest_total_tasks += 1
-                source_total_files += task["files"]
-                source_total_bps += task["effective_bytes_per_second"]
-                source_total_tasks += 1
-            print("{1:10s} {2:36s} {3:10d} {0}".format(
-                task["owner_string"], endpoint_is,
-                task["task_id"],
-                task["files"])
-                 )
-            # this logic will alert on the most recent error event for a task, only once
-            for event in tclient.endpoint_manager_task_event_list(task["task_id"]):
-                if event["is_error"]:
-                    # for events that are transient, self-correct, or beyond user control,
-                    # skip over with continue
-                    if (event["code"] == "AUTH" or
-                            event["code"] == "CANCELED" or
-                            event["code"] == "CONNECT_FAILED" or
-                            event["code"] == "CONNECTION_BROKEN" or
-                            event["code"] == "CONNECTION_RESET" or
-                            event["code"] == "ENDPOINT_TOO_BUSY" or
-                            event["code"] == "ENDPOINT_ERROR" or
-                            event["code"] == "FILE_NOT_FOUND" or
-                            event["code"] == "FILE_SIZE_CHANGED" or
-                            event["code"] == "GC_NOT_CONNECTED" or
-                            event["code"] == "GC_PAUSED" or
-                            event["code"] == "NO_APPEND_FILESYSTEM" or
-                            event["code"] == "TIMEOUT" or
-                            event["code"] == "UNKNOWN" or
-                            event["code"] == "VERIFY_CHECKSUM"):
-                        continue
-                    if MYTASK_NOTED.get(str(task["task_id"])) is None:
-                        print("  {} {} {}".format(event["time"], event["code"],
-                                                  event["description"]))
-                        globus_url = GLOBUS_CONSOLE + str(task["task_id"])
-                        detail_file = open('task_detail.txt', 'w')
-                        detail_file.write("Click link to view in the GO console: {}\n".
-                                          format(globus_url))
-                        detail_file.write("{} {} {}\n{}".format(event["time"],
-                                                                event["code"], event["description"],
-                                                                event["details"]))
-                        pprint.pprint(str(task), stream=detail_file, depth=1, width=50)
-                        detail_file.close()
+    for task in tclient.endpoint_manager_task_list(filter_endpoint=endpoint,
+                                                   filter_status="ACTIVE",
+                                                   num_results=None):
+        if task["destination_endpoint_id"] == endpoint:
+            endpoint_is = "DEST"
+            dest_total_files += task["files"]
+            dest_total_bps += task["effective_bytes_per_second"]
+            dest_total_tasks += 1
+        else:
+            endpoint_is = "SRC"
+            source_total_files += task["files"]
+            source_total_bps += task["effective_bytes_per_second"]
+            source_total_tasks += 1
+            endpoint_is = "DEST_SRC"
+            dest_total_files += task["files"]
+            dest_total_bps += task["effective_bytes_per_second"]
+            dest_total_tasks += 1
+            source_total_files += task["files"]
+            source_total_bps += task["effective_bytes_per_second"]
+            source_total_tasks += 1
+        print("{1:10s} {2:36s} {3:10d} {0}".format(
+            task["owner_string"], endpoint_is,
+            task["task_id"],
+            task["files"])
+             )
+        # this logic will alert on the most recent error event for a task, only once
+        for event in tclient.endpoint_manager_task_event_list(task["task_id"]):
+            if event["is_error"]:
+                # for events that are transient, self-correct, or beyond user control,
+                # skip over with continue
+                if (event["code"] == "AUTH" or
+                        event["code"] == "CANCELED" or
+                        event["code"] == "CONNECT_FAILED" or
+                        event["code"] == "CONNECTION_BROKEN" or
+                        event["code"] == "CONNECTION_RESET" or
+                        event["code"] == "ENDPOINT_TOO_BUSY" or
+                        event["code"] == "ENDPOINT_ERROR" or
+                        event["code"] == "FILE_NOT_FOUND" or
+                        event["code"] == "FILE_SIZE_CHANGED" or
+                        event["code"] == "GC_NOT_CONNECTED" or
+                        event["code"] == "GC_PAUSED" or
+                        event["code"] == "NO_APPEND_FILESYSTEM" or
+                        event["code"] == "TIMEOUT" or
+                        event["code"] == "UNKNOWN" or
+                        event["code"] == "VERIFY_CHECKSUM"):
+                    continue
+                if MYTASK_NOTED.get(str(task["task_id"])) is None:
+                    print("  {} {} {}".format(event["time"], event["code"],
+                                              event["description"]))
+                    globus_url = GLOBUS_CONSOLE + str(task["task_id"])
+                    detail_file = open('task_detail.txt', 'w')
+                    detail_file.write("Click link to view in the GO console: {}\n".
+                                      format(globus_url))
+                    detail_file.write("{} {} {}\n{}".format(event["time"],
+                                                            event["code"], event["description"],
+                                                            event["details"]))
+                    pprint.pprint(str(task), stream=detail_file, depth=1, width=50)
+                    detail_file.close()
 #                        os.system("mail -s " + "ERROR:" + task["owner_string"] + " " + RECIPIENTS
 #                                  + " < task_detail.txt")
-                    else:
-                        print("  old_or_handled: {} {} {}".format(event["time"], event["code"],
-                                                                  event["description"]))
-                    MYTASK_NOTED[str(task["task_id"])] = 1
+                else:
+                    print("  old_or_handled: {} {} {}".format(event["time"], event["code"],
+                                                              event["description"]))
+                MYTASK_NOTED[str(task["task_id"])] = 1
     # end for
     print("...TOTAL.files..tasks..MBps...")
     print("SRC  {:9d}  {:4d}  {:6.1f}".format(
@@ -220,7 +221,7 @@ def main():
         print("...sleeping {}s...\n".format(SLEEP_DELAY))
         time.sleep(SLEEP_DELAY)
         coverage_count += 1
-        if coverage_count > 1:
+        if coverage_count > 100:
             break
 
         # end while

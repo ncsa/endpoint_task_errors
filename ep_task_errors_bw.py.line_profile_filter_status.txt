@@ -1,0 +1,92 @@
+Timer unit: 1e-06 s
+
+Total time: 18.5793 s
+File: ep_task_errors_bw.py
+Function: my_endpoint_manager_task_list at line 98
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    98                                           @profile
+    99                                           def my_endpoint_manager_task_list(tclient, endpoint):
+   100                                               """
+   101                                               Get tasks from an endpoint, then look through them for error events.
+   102                                               Also mark as SRC, DEST, or SRC_DEST as the case may be.
+   103                                               """
+   104         2         24.0     12.0      0.0      source_total_files = 0
+   105         2          6.0      3.0      0.0      dest_total_files = 0
+   106         2         37.0     18.5      0.0      source_total_bps = 0
+   107         2          6.0      3.0      0.0      dest_total_bps = 0
+   108         2          4.0      2.0      0.0      source_total_tasks = 0
+   109         2          4.0      2.0      0.0      dest_total_tasks = 0
+   110                                           
+   111       191    4243969.0  22219.7     22.8      for task in tclient.endpoint_manager_task_list(filter_endpoint=endpoint, filter_status="ACTIVE", num_results=None):
+   112       189       1300.0      6.9      0.0          if task["destination_endpoint_id"] == endpoint:
+   113       189        979.0      5.2      0.0              endpoint_is = "DEST"
+   114        12         21.0      1.8      0.0              dest_total_files += task["files"]
+   115        12         52.0      4.3      0.0              dest_total_bps += task["effective_bytes_per_second"]
+   116        12         74.0      6.2      0.0              dest_total_tasks += 1
+   117        12         27.0      2.2      0.0          else:
+   118                                                       endpoint_is = "SRC"
+   119       177        316.0      1.8      0.0              source_total_files += task["files"]
+   120       177        989.0      5.6      0.0              source_total_bps += task["effective_bytes_per_second"]
+   121       177        940.0      5.3      0.0              source_total_tasks += 1
+   122       177        363.0      2.1      0.0              endpoint_is = "DEST_SRC"
+   123       177        321.0      1.8      0.0              dest_total_files += task["files"]
+   124       177        824.0      4.7      0.0              dest_total_bps += task["effective_bytes_per_second"]
+   125       177        824.0      4.7      0.0              dest_total_tasks += 1
+   126       177        333.0      1.9      0.0              source_total_files += task["files"]
+   127       177        807.0      4.6      0.0              source_total_bps += task["effective_bytes_per_second"]
+   128       177        764.0      4.3      0.0              source_total_tasks += 1
+   129       177        333.0      1.9      0.0          print("{1:10s} {2:36s} {3:10d} {0}".format(
+   130       189        481.0      2.5      0.0              task["owner_string"], endpoint_is,
+   131       189        958.0      5.1      0.0              task["task_id"],
+   132       189        842.0      4.5      0.0              task["files"])
+   133       189       9553.0     50.5      0.1               )
+   134                                                   # this logic will alert on the most recent error event for a task, only once
+   135                                                   for event in tclient.endpoint_manager_task_event_list(task["task_id"]):
+   136       908   14250455.0  15694.3     76.7              if event["is_error"]:
+   137       719       3622.0      5.0      0.0                  # for events that are transient, self-correct, or beyond user control,
+   138                                                           # skip over with continue
+   139                                                           if (event["code"] == "AUTH" or
+   140       243       1205.0      5.0      0.0                          event["code"] == "CANCELED" or
+   141       243       1088.0      4.5      0.0                          event["code"] == "CONNECT_FAILED" or
+   142       243       1090.0      4.5      0.0                          event["code"] == "CONNECTION_BROKEN" or
+   143       243       1048.0      4.3      0.0                          event["code"] == "CONNECTION_RESET" or
+   144       238       1033.0      4.3      0.0                          event["code"] == "ENDPOINT_TOO_BUSY" or
+   145       238       1058.0      4.4      0.0                          event["code"] == "ENDPOINT_ERROR" or
+   146       238       1077.0      4.5      0.0                          event["code"] == "FILE_NOT_FOUND" or
+   147       225       1076.0      4.8      0.0                          event["code"] == "FILE_SIZE_CHANGED" or
+   148       142        614.0      4.3      0.0                          event["code"] == "GC_NOT_CONNECTED" or
+   149       142        643.0      4.5      0.0                          event["code"] == "GC_PAUSED" or
+   150        28        119.0      4.2      0.0                          event["code"] == "NO_APPEND_FILESYSTEM" or
+   151        28        116.0      4.1      0.0                          event["code"] == "TIMEOUT" or
+   152        22         98.0      4.5      0.0                          event["code"] == "UNKNOWN" or
+   153        20        113.0      5.7      0.0                          event["code"] == "VERIFY_CHECKSUM"):
+   154        20         90.0      4.5      0.0                      continue
+   155                                                           if MYTASK_NOTED.get(str(task["task_id"])) is None:
+   156        20        137.0      6.8      0.0                      print("  {} {} {}".format(event["time"], event["code"],
+   157         2         11.0      5.5      0.0                                                event["description"]))
+   158         2         88.0     44.0      0.0                      globus_url = GLOBUS_CONSOLE + str(task["task_id"])
+   159         2         26.0     13.0      0.0                      detail_file = open('task_detail.txt', 'w')
+   160         2       9583.0   4791.5      0.1                      detail_file.write("Click link to view in the GO console: {}\n".
+   161         2          8.0      4.0      0.0                                        format(globus_url))
+   162         2         18.0      9.0      0.0                      detail_file.write("{} {} {}\n{}".format(event["time"],
+   163         2         21.0     10.5      0.0                                                              event["code"], event["description"],
+   164         2         15.0      7.5      0.0                                                              event["details"]))
+   165         2         22.0     11.0      0.0                      pprint.pprint(str(task), stream=detail_file, depth=1, width=50)
+   166         2       4090.0   2045.0      0.0                      detail_file.close()
+   167         2      34569.0  17284.5      0.2  #                        os.system("mail -s " + "ERROR:" + task["owner_string"] + " " + RECIPIENTS
+   168                                           #                                  + " < task_detail.txt")
+   169                                                           else:
+   170                                                               print("  old_or_handled: {} {} {}".format(event["time"], event["code"],
+   171        18        110.0      6.1      0.0                                                                event["description"]))
+   172        18        515.0     28.6      0.0                  MYTASK_NOTED[str(task["task_id"])] = 1
+   173        20        206.0     10.3      0.0      # end for
+   174                                               print("...TOTAL.files..tasks..MBps...")
+   175         2         80.0     40.0      0.0      print("SRC  {:9d}  {:4d}  {:6.1f}".format(
+   176         2          6.0      3.0      0.0          source_total_files, source_total_tasks, source_total_bps/MB)
+   177         2         74.0     37.0      0.0           )
+   178                                               print("DEST {:9d}  {:4d}  {:6.1f}".format(
+   179         2          4.0      2.0      0.0          dest_total_files, dest_total_tasks, dest_total_bps/MB)
+   180         2         31.0     15.5      0.0           )
+
