@@ -26,7 +26,7 @@ GLOBUS_CONSOLE = "https://www.globus.org/app/console/tasks/"
 DISPLAY_ONLY_SIZE = NOTIFY_SIZE
 PAUSE_SIZE = NOTIFY_SIZE
 SRCDEST_FILES = 500
-SLEEP_DELAY = 10
+SLEEP_DELAY = 300
 # dictionary for testing to maintain state of tasks notified
 MYTASK_NOTED = {}
 TOKEN_FILE = 'refresh-tokens.json'
@@ -219,9 +219,9 @@ def main():
         print("...sleeping {}s...\n".format(SLEEP_DELAY))
         time.sleep(SLEEP_DELAY)
         coverage_count += 1
-        if coverage_count > 3:
+        if coverage_count > 25:
             break
-        
+
         # end while
 # end def main()
 
