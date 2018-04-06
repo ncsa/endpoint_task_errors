@@ -1,0 +1,20 @@
+Python programs should exit cleanly for profiling with the command lines tools.
+Code modification may be needed for daemons that run indefinitely.
+
+For basic profile (text):
+
+  python -m cProfile ep_task_errors_bw.py  
+
+The GUI versions of that require a profile file:
+
+  python -m cProfile -o bw.profile ep_task_errors_bw.py
+
+After the program finishes, view with graphviz or snakeviz. 
+
+  pip install snakeviz
+  pip install profile-viewer
+  brew install graphviz
+
+  gprof2dot -f pstats bw.profile | dot -Tpng -o bw.png
+  snakeviz bw.profile   # view in new web browser tab
+
