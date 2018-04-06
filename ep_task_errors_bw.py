@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Monitor Nearline endpoint
+Monitor bw endpoint
 
 Based on tutorial and documentation at:
    http://globus.github.io/globus-sdk-python/index.html
@@ -21,11 +21,12 @@ MB = 1048576
 NOTIFY_SIZE = 100
 RECIPIENTS = "gwarnold@illinois.edu,gbauer@illinois.edu"
 RECIPIENTS = "gwarnold@illinois.edu,help+bwstorage@ncsa.illinois.edu"
+RECIPIENTS = "gwarnold@illinois.edu"
 GLOBUS_CONSOLE = "https://www.globus.org/app/console/tasks/"
 DISPLAY_ONLY_SIZE = NOTIFY_SIZE
 PAUSE_SIZE = NOTIFY_SIZE
 SRCDEST_FILES = 500
-SLEEP_DELAY = 300
+SLEEP_DELAY = 10
 # dictionary for testing to maintain state of tasks notified
 MYTASK_NOTED = {}
 TOKEN_FILE = 'refresh-tokens.json'
@@ -145,6 +146,7 @@ def my_endpoint_manager_task_list(tclient, endpoint):
                             event["code"] == "FILE_NOT_FOUND" or
                             event["code"] == "FILE_SIZE_CHANGED" or
                             event["code"] == "GC_NOT_CONNECTED" or
+                            event["code"] == "GC_PAUSED" or
                             event["code"] == "NO_APPEND_FILESYSTEM" or
                             event["code"] == "TIMEOUT" or
                             event["code"] == "UNKNOWN" or
@@ -162,8 +164,8 @@ def my_endpoint_manager_task_list(tclient, endpoint):
                                                                 event["details"]))
                         pprint.pprint(str(task), stream=detail_file, depth=1, width=50)
                         detail_file.close()
-                        os.system("mail -s " + "ERROR:" + task["owner_string"] + " " + RECIPIENTS
-                                  + " < task_detail.txt")
+#                        os.system("mail -s " + "ERROR:" + task["owner_string"] + " " + RECIPIENTS
+#                                  + " < task_detail.txt")
                     else:
                         print("  old_or_handled: {} {} {}".format(event["time"], event["code"],
                                                                   event["description"]))
@@ -210,12 +212,16 @@ def main():
         on_refresh=update_tokens_file_on_refresh)
 
     tclient = globus_sdk.TransferClient(authorizer=authorizer)
-
+    coverage_count = 0
     while True:
-        print("...Nearline..........task.[ACTIVE]............Nfiles.....owner...")
-        my_endpoint_manager_task_list(tclient, EP_NEARLINE)
+        print("...bw..........task.[ACTIVE]............Nfiles.....owner...")
+        my_endpoint_manager_task_list(tclient, EP_BW)
         print("...sleeping {}s...\n".format(SLEEP_DELAY))
         time.sleep(SLEEP_DELAY)
+        coverage_count += 1
+        if coverage_count > 3:
+            break
+        
         # end while
 # end def main()
 
