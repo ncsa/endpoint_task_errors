@@ -139,12 +139,14 @@ def my_endpoint_manager_task_list(tclient, endpoint):
                     if (event["code"] == "AUTH" or
                             event["code"] == "CANCELED" or
                             event["code"] == "CONNECT_FAILED" or
+                            event["code"] == "CONNECTION_BROKEN" or
                             event["code"] == "CONNECTION_RESET" or
                             event["code"] == "ENDPOINT_TOO_BUSY" or
                             event["code"] == "ENDPOINT_ERROR" or
                             event["code"] == "FILE_NOT_FOUND" or
                             event["code"] == "FILE_SIZE_CHANGED" or
                             event["code"] == "GC_NOT_CONNECTED" or
+                            event["code"] == "GC_PAUSED" or
                             event["code"] == "NO_APPEND_FILESYSTEM" or
                             event["code"] == "TIMEOUT" or
                             event["code"] == "UNKNOWN" or

@@ -95,7 +95,7 @@ def do_native_app_authentication(client_id, redirect_uri,
     # return a set of tokens, organized by resource server name
     return token_response.by_resource_server
 
-
+@profile
 def my_endpoint_manager_task_list(tclient, endpoint):
     """
     Get tasks from an endpoint, then look through them for error events.
@@ -140,6 +140,7 @@ def my_endpoint_manager_task_list(tclient, endpoint):
                     if (event["code"] == "AUTH" or
                             event["code"] == "CANCELED" or
                             event["code"] == "CONNECT_FAILED" or
+                            event["code"] == "CONNECTION_BROKEN" or
                             event["code"] == "CONNECTION_RESET" or
                             event["code"] == "ENDPOINT_TOO_BUSY" or
                             event["code"] == "ENDPOINT_ERROR" or
@@ -219,7 +220,7 @@ def main():
         print("...sleeping {}s...\n".format(SLEEP_DELAY))
         time.sleep(SLEEP_DELAY)
         coverage_count += 1
-        if coverage_count > 25:
+        if coverage_count > 1:
             break
 
         # end while

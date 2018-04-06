@@ -1,7 +1,7 @@
 Python programs should exit cleanly for profiling with the command lines tools.
 Code modification may be needed for daemons that run indefinitely.
 
-For basic profile (text):
+For basic profile (text).  cProfile will profile by function call:
 
   python -m cProfile ep_task_errors_bw.py  
 
@@ -17,4 +17,14 @@ After the program finishes, view with graphviz or snakeviz.
 
   gprof2dot -f pstats bw.profile | dot -Tpng -o bw.png
   snakeviz bw.profile   # view in new web browser tab
+
+For line-level profiling within a function:
+
+  pip install line_profiler
+  vi ep_task_errors_bw.py  # decorate line ahead of your suspect fn. with @profile
+  kernprof -l ep_task_errors_bw.py
+  
+View line-level results with:
+  
+  python -m line_profiler ep_task_errors_bw.py.lprof
 
