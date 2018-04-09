@@ -133,44 +133,46 @@ def my_endpoint_manager_task_list(tclient, endpoint):
             task["files"])
              )
         # this logic will alert on the most recent error event for a task, only once
-        for event in tclient.endpoint_manager_task_event_list(task["task_id"]):
-            if event["is_error"]:
-                # for events that are transient, self-correct, or beyond user control,
-                # skip over with continue
-                if (event["code"] == "AUTH" or
-                        event["code"] == "CANCELED" or
-                        event["code"] == "CONNECT_FAILED" or
-                        event["code"] == "CONNECTION_BROKEN" or
-                        event["code"] == "CONNECTION_RESET" or
-                        event["code"] == "ENDPOINT_TOO_BUSY" or
-                        event["code"] == "ENDPOINT_ERROR" or
-                        event["code"] == "FILE_NOT_FOUND" or
-                        event["code"] == "FILE_SIZE_CHANGED" or
-                        event["code"] == "GC_NOT_CONNECTED" or
-                        event["code"] == "GC_PAUSED" or
-                        event["code"] == "NO_APPEND_FILESYSTEM" or
-                        event["code"] == "TIMEOUT" or
-                        event["code"] == "UNKNOWN" or
-                        event["code"] == "VERIFY_CHECKSUM"):
-                    continue
-                if MYTASK_NOTED.get(str(task["task_id"])) is None:
-                    print("  {} {} {}".format(event["time"], event["code"],
-                                              event["description"]))
-                    globus_url = GLOBUS_CONSOLE + str(task["task_id"])
-                    detail_file = open('task_detail.txt', 'w')
-                    detail_file.write("Click link to view in the GO console: {}\n".
-                                      format(globus_url))
-                    detail_file.write("{} {} {}\n{}".format(event["time"],
-                                                            event["code"], event["description"],
-                                                            event["details"]))
-                    pprint.pprint(str(task), stream=detail_file, depth=1, width=50)
-                    detail_file.close()
-                    os.system("mail -s " + "ERROR:" + task["owner_string"] + " " + RECIPIENTS
-                              + " < task_detail.txt")
-                else:
-                    print("  old_or_handled: {} {} {}".format(event["time"], event["code"],
-                                                              event["description"]))
-                MYTASK_NOTED[str(task["task_id"])] = 1
+        for event in tclient.endpoint_manager_task_event_list(task["task_id"],
+                                                              num_results=None,
+                                                              filter_is_error=1):
+            # for events that are transient, self-correct, or beyond user control,
+            # skip over with continue
+            if (event["code"] == "AUTH" or
+                    event["code"] == "CANCELED" or
+                    event["code"] == "CONNECT_FAILED" or
+                    event["code"] == "CONNECTION_BROKEN" or
+                    event["code"] == "CONNECTION_RESET" or
+                    event["code"] == "ENDPOINT_TOO_BUSY" or
+                    event["code"] == "ENDPOINT_ERROR" or
+                    event["code"] == "FILE_NOT_FOUND" or
+                    event["code"] == "FILE_SIZE_CHANGED" or
+                    event["code"] == "GC_NOT_CONNECTED" or
+                    event["code"] == "GC_PAUSED" or
+                    event["code"] == "NO_APPEND_FILESYSTEM" or
+                    event["code"] == "PERMISSION_DENIED" or
+                    event["code"] == "TIMEOUT" or
+                    event["code"] == "UNKNOWN" or
+                    event["code"] == "VERIFY_CHECKSUM"):
+                continue
+            if MYTASK_NOTED.get(str(task["task_id"])) is None:
+                print("  {} {} {}".format(event["time"], event["code"],
+                                          event["description"]))
+                globus_url = GLOBUS_CONSOLE + str(task["task_id"])
+                detail_file = open('task_detail.txt', 'w')
+                detail_file.write("Click link to view in the GO console: {}\n".
+                                  format(globus_url))
+                detail_file.write("{} {} {}\n{}".format(event["time"],
+                                                        event["code"], event["description"],
+                                                        event["details"]))
+                pprint.pprint(str(task), stream=detail_file, depth=1, width=50)
+                detail_file.close()
+                os.system("mail -s " + "ERROR:" + task["owner_string"] + " " + RECIPIENTS
+                          + " < task_detail.txt")
+            else:
+                print("  old_or_handled: {} {} {}".format(event["time"], event["code"],
+                                                          event["description"]))
+            MYTASK_NOTED[str(task["task_id"])] = 1
     # end for
     print("...TOTAL.files..tasks..MBps...")
     print("SRC  {:9d}  {:4d}  {:6.1f}".format(
