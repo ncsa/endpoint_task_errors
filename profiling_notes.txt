@@ -7,24 +7,24 @@ For basic profile (text).  cProfile will profile by function call:
 
 The GUI versions of that require a profile file:
 
-  python -m cProfile -o bw.profile ep_task_errors_bw.py
+  python -m cProfile -o bw.profile ep_task_errors_bw.py # bw:ok
 
 After the program finishes, view with graphviz or snakeviz. 
 
-  pip install snakeviz
-  pip install profile-viewer
+  pip install snakeviz # bw:ok , virtualenv
+  pip install profile-viewer # bw:ok , virtualenv
   brew install graphviz
 
   gprof2dot -f pstats bw.profile | dot -Tpng -o bw.png
-  snakeviz bw.profile   # view in new web browser tab
+  snakeviz bw.profile   # view in new web browser tab , bw:ok local firefox
 
 For line-level profiling within a function:
 
-  pip install line_profiler
+  pip install line_profiler # bw:ok , virtualenv
   vi ep_task_errors_bw.py  # decorate line ahead of your suspect fn. with @profile
-  kernprof -l ep_task_errors_bw.py
+  kernprof -l ep_task_errors_bw.py # bw:ok , virtualenv
   
 View line-level results with:
   
-  python -m line_profiler ep_task_errors_bw.py.lprof
+  python -m line_profiler ep_task_errors_bw.py.lprof # bw:ok , virtualenv
 
