@@ -145,7 +145,6 @@ def my_endpoint_manager_task_list(tclient, endpoint):
                     event["code"] == "CONNECTION_RESET" or
                     event["code"] == "ENDPOINT_TOO_BUSY" or
                     event["code"] == "ENDPOINT_ERROR" or
-                    event["code"] == "FILE_NOT_FOUND" or
                     event["code"] == "FILE_SIZE_CHANGED" or
                     event["code"] == "GC_NOT_CONNECTED" or
                     event["code"] == "GC_PAUSED" or
