@@ -7,6 +7,7 @@ Based on tutorial and documentation at:
 -Galen Arnold, 2018, NCSA
 """
 import time
+import re
 import os
 import globus_sdk
 import json
@@ -40,6 +41,8 @@ EP_JYC = "d0ccdc02-6d04-11e5-ba46-22000b92c6ec"
 EP_NEARLINE = "d599008e-6d04-11e5-ba46-22000b92c6ec"
 
 GET_INPUT = getattr(__builtins__, 'raw_input', input)
+IS_STDOUT_FILE_MISSING = re.compile(r"File: .*\.OU")
+IS_STDERR_FILE_MISSING = re.compile(r"File: .*\.ER")
 
 
 def is_remote_session():
@@ -133,6 +136,9 @@ def my_endpoint_manager_task_list(tclient, endpoint):
             task["task_id"],
             task["files"])
              )
+        if task["source_local_user"] == "arnoldg":
+            continue
+        old_handled_count = 0
         # this logic will alert on the most recent error event for a task, only once
         for event in tclient.endpoint_manager_task_event_list(task["task_id"],
                                                               num_results=None,
@@ -146,7 +152,6 @@ def my_endpoint_manager_task_list(tclient, endpoint):
                     event["code"] == "CONNECTION_RESET" or
                     event["code"] == "ENDPOINT_TOO_BUSY" or
                     event["code"] == "ENDPOINT_ERROR" or
-                    event["code"] == "FILE_NOT_FOUND" or
                     event["code"] == "FILE_SIZE_CHANGED" or
                     event["code"] == "GC_NOT_CONNECTED" or
                     event["code"] == "GC_PAUSED" or
@@ -156,6 +161,12 @@ def my_endpoint_manager_task_list(tclient, endpoint):
                     event["code"] == "UNKNOWN" or
                     event["code"] == "VERIFY_CHECKSUM"):
                 continue
+            # skip over FILE_NOT_FOUND if it's just a missing batch spool file
+            if event["code"] == "FILE_NOT_FOUND":
+                stdout_file_name = IS_STDOUT_FILE_MISSING.search(event["details"])
+                stderr_file_name = IS_STDERR_FILE_MISSING.search(event["details"])
+                if not(stdout_file_name is None and stderr_file_name is None):
+                    continue
             if MYTASK_NOTED.get(str(task["task_id"])) is None:
                 print("  {} {} {}".format(event["time"], event["code"],
                                           event["description"]))
@@ -168,11 +179,13 @@ def my_endpoint_manager_task_list(tclient, endpoint):
                                                         event["details"]))
                 pprint.pprint(str(task), stream=detail_file, depth=1, width=50)
                 detail_file.close()
-#                        os.system("mail -s " + "ERROR:" + task["owner_string"] + " " + RECIPIENTS
-#                                  + " < task_detail.txt")
+                os.system("mail -s " + "ERROR:" + task["owner_string"] + " " + RECIPIENTS
+                          + " < task_detail.txt")
             else:
-                print("  old_or_handled: {} {} {}".format(event["time"], event["code"],
-                                                          event["description"]))
+                if old_handled_count < 1:
+                    print("  old_or_handled: {} {} {}".format(event["time"], event["code"],
+                                                              event["description"]))
+                old_handled_count += 1
             MYTASK_NOTED[str(task["task_id"])] = 1
     # end for
     print("...TOTAL.files..tasks..MBps...")
