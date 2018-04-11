@@ -28,8 +28,9 @@ DISPLAY_ONLY_SIZE = NOTIFY_SIZE
 PAUSE_SIZE = NOTIFY_SIZE
 SRCDEST_FILES = 500
 SLEEP_DELAY = 300
-# dictionary for testing to maintain state of tasks notified
+# dictionaries for testing to maintain state of tasks and users notified
 MYTASK_NOTED = {}
+MYUSER_NOTIFIED = {}
 TOKEN_FILE = 'refresh-tokens.json'
 REDIRECT_URI = 'https://auth.globus.org/v2/web/auth-code'
 SCOPES = ('openid email profile '
@@ -167,9 +168,14 @@ def my_endpoint_manager_task_list(tclient, endpoint):
                 stderr_file_name = IS_STDERR_FILE_MISSING.search(event["details"])
                 if not(stdout_file_name is None and stderr_file_name is None):
                     continue
+            # skip over repeated events
             if MYTASK_NOTED.get(str(task["task_id"])) is None:
+                # skip past user already notified
+                if MYUSER_NOTIFIED.get(str(task["owner_string"] + event["code"])) is 1:
+                    continue
                 print("  {} {} {}".format(event["time"], event["code"],
                                           event["description"]))
+                MYUSER_NOTIFIED[str(task["owner_string"] + event["code"])] = 1
                 globus_url = GLOBUS_CONSOLE + str(task["task_id"])
                 detail_file = open('task_detail.txt', 'w')
                 detail_file.write("Click link to view in the GO console: {}\n".
