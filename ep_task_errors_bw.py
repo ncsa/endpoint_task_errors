@@ -125,6 +125,7 @@ def my_endpoint_manager_task_list(tclient, endpoint):
             source_total_files += task["files"]
             source_total_bps += task["effective_bytes_per_second"]
             source_total_tasks += 1
+        if task["destination_endpoint_id"] == task["source_endpoint_id"]:
             endpoint_is = "DEST_SRC"
             dest_total_files += task["files"]
             dest_total_bps += task["effective_bytes_per_second"]
