@@ -9,10 +9,10 @@ Based on tutorial and documentation at:
 import time
 import re
 import os
-import globus_sdk
 import json
 import webbrowser
 import pprint
+import globus_sdk
 
 # some globals
 CLIENT_ID = '231634e4-37cc-4a06-96ce-12a262a62da7'
@@ -99,7 +99,8 @@ def do_native_app_authentication(client_id, redirect_uri,
     # return a set of tokens, organized by resource server name
     return token_response.by_resource_server
 
-#@profile
+
+# @profile
 def my_endpoint_manager_task_list(tclient, endpoint):
     """
     Get tasks from an endpoint, then look through them for error events.
@@ -197,10 +198,10 @@ def my_endpoint_manager_task_list(tclient, endpoint):
     # end for
     print("...TOTAL.files..tasks..MBps...")
     print("SRC  {:9d}  {:4d}  {:6.1f}".format(
-        source_total_files, source_total_tasks, source_total_bps/MB)
+        source_total_files, source_total_tasks, source_total_bps / MB)
          )
     print("DEST {:9d}  {:4d}  {:6.1f}".format(
-        dest_total_files, dest_total_tasks, dest_total_bps/MB)
+        dest_total_files, dest_total_tasks, dest_total_bps / MB)
          )
 
 
