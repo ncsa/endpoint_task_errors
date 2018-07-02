@@ -157,6 +157,8 @@ def my_endpoint_manager_task_list(tclient, endpoint):
                     event["code"] == "GC_PAUSED" or
                     event["code"] == "NO_APPEND_FILESYSTEM" or
                     event["code"] == "PERMISSION_DENIED" or
+                    event["code"] == "PAUSED" or
+                    event["code"] == "UNPAUSED" or
                     event["code"] == "TIMEOUT" or
                     event["code"] == "UNKNOWN" or
                     event["code"] == "VERIFY_CHECKSUM"):
