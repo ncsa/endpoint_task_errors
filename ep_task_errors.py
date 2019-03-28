@@ -13,7 +13,7 @@ import json
 import webbrowser
 import pprint
 import globus_sdk
-
+import sys
 
 # some globals
 CLIENT_ID = '231634e4-37cc-4a06-96ce-12a262a62da7'
@@ -53,9 +53,14 @@ def is_remote_session():
 
 def load_tokens_from_file(filepath):
     """Load a set of saved tokens."""
-    with open(filepath, 'r') as tokenfile:
-        tokens = json.load(tokenfile)
-
+    tokens = {}
+    try:
+        with open(filepath, 'r') as tokenfile:
+            tokens = json.load(tokenfile)
+    except FileNotFoundError:
+        pass
+    except BaseException:
+        sys.stderr.write("Failed to read tokens from {}\n".format(filepath))
     return tokens
 
 
@@ -201,6 +206,8 @@ def my_endpoint_manager_task_list(tclient, endpoint):
     print("DEST {:9d}  {:4d}  {:6.1f}".format(
         dest_total_files, dest_total_tasks, dest_total_bps/MB)
          )
+    save_tokens_to_file("tasknoted.json", MYTASK_NOTED)
+    save_tokens_to_file("usersnotified.json", MYUSER_NOTIFIED)
 
 
 def main():
@@ -245,4 +252,6 @@ def main():
 # end def main()
 
 
+MYTASK_NOTED = load_tokens_from_file("tasknoted.json")
+MYUSER_NOTIFIED = load_tokens_from_file("usersnotified.json")
 main()
