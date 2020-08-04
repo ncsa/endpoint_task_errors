@@ -176,7 +176,7 @@ def my_endpoint_manager_task_list(tclient, endpoint):
                     continue
             if MYTASK_NOTED.get(str(task["task_id"])) is None:
                 # skip past user already notified
-                if MYUSER_NOTIFIED.get(str(task["owner_string"] + event["code"])) is 1:
+                if MYUSER_NOTIFIED.get(str(task["owner_string"] + event["code"])) == 1:
                     continue
                 print("  {} {} {}".format(event["time"], event["code"],
                                           event["description"]))
