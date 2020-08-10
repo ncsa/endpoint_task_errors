@@ -244,7 +244,7 @@ def main():
     tclient = globus_sdk.TransferClient(authorizer=authorizer)
 
     while True:
-        print("...Nearline..........task.[ACTIVE]............Nfiles.....owner...")
+        print("...BW................task.[ACTIVE]............Nfiles.....owner...")
         my_endpoint_manager_task_list(tclient, EP_BW)
         print("...sleeping {}s...\n".format(SLEEP_DELAY))
         time.sleep(SLEEP_DELAY)
